@@ -1,0 +1,468 @@
+body {
+    overflow: hidden;
+    margin: 0;
+    background-color: #160016;
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Nút mở thư: bấm là mở được ngay */
+.btn-open-letter {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #e91e8c 0%, #c2185b 100%);
+    border: none;
+    border-radius: 999px;
+    box-shadow: 0 4px 20px rgba(233, 30, 140, 0.45);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-open-letter:hover {
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 0 6px 24px rgba(233, 30, 140, 0.5);
+}
+
+.btn-open-letter:active {
+    transform: translateX(-50%) scale(0.98);
+}
+
+.btn-open-letter-icon {
+    font-size: 1.25rem;
+}
+
+#video-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 240px;
+    height: 180px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 100;
+    transform: scaleX(-1);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    background: #000;
+    display: none;
+}
+
+canvas#output_canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 0;
+}
+
+video#input_video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #160016;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: white;
+    transition: opacity 1s ease;
+}
+
+.loader {
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid #fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Overlay thư đúng mẫu ảnh: nền hồng, tim/sao/mây, phong bì đóng → mở */
+.letter-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.letter-overlay.letter-overlay--visible {
+    display: flex;
+    pointer-events: auto;
+}
+
+.letter-overlay .letter-backdrop {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #ffe4ef 0%, #ffcce0 40%, #ffb3d9 70%, #f0a8d0 100%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.letter-overlay.letter-overlay--visible .letter-backdrop {
+    opacity: 1;
+}
+
+/* Trang trí lơ lửng: tim, sao, mây */
+.letter-float {
+    position: absolute;
+    font-size: clamp(1rem, 3.5vw, 1.75rem);
+    opacity: 0;
+    pointer-events: none;
+    animation: letterFloat 5s ease-in-out infinite;
+}
+
+.letter-overlay.letter-overlay--visible .letter-float {
+    opacity: 0.85;
+}
+
+.letter-float--1  { left: 10%; top: 15%; animation-delay: 0s; }
+.letter-float--2  { left: 86%; top: 12%; animation-delay: 0.4s; }
+.letter-float--3  { left: 8%;  top: 72%; animation-delay: 0.8s; }
+.letter-float--4  { left: 90%; top: 68%; animation-delay: 0.2s; }
+.letter-float--5  { left: 6%;  top: 42%; animation-delay: 0.6s; }
+.letter-float--6  { left: 94%; top: 48%; animation-delay: 0.3s; }
+.letter-float--7  { left: 48%; top: 6%;  animation-delay: 0.5s; }
+.letter-float--8  { left: 52%; top: 88%; animation-delay: 0.7s; }
+.letter-float--9  { left: 24%; top: 28%; animation-delay: 0.1s; }
+.letter-float--10 { left: 76%; top: 32%; animation-delay: 0.9s; }
+.letter-float--11 { left: 30%; top: 78%; animation-delay: 0.35s; }
+.letter-float--12 { left: 68%; top: 82%; animation-delay: 0.55s; }
+
+@keyframes letterFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-10px) scale(1.08); }
+}
+
+/* Hai trạng thái: đóng (card 3D) / mở (nút Đóng thư) */
+.letter-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.letter-state-closed { opacity: 1; visibility: visible; }
+.letter-state-open   { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.letter-overlay.letter-overlay--open .letter-state-open { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 1.8s; }
+.letter-state-open { align-items: flex-end; justify-content: flex-end; padding: 1.5rem; }
+
+/* Bối cảnh 3D: perspective + wrapper lật thẻ (như mẫu) */
+.letter-boicanh {
+    perspective: 1000px;
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.letter-perspective {
+    transition: transform 1s ease;
+    transform: translateY(0);
+}
+
+.letter-overlay.letter-overlay--open .letter-perspective {
+    transform: translateY(100px);
+}
+
+.letter-bithu {
+    position: relative;
+    width: 300px;
+    height: 220px;
+    transform-style: preserve-3d;
+    transition: transform 1s ease;
+    transform: rotateX(-0.9deg) rotateY(-0.3deg) rotateY(0deg) scale(1.1);
+}
+
+.letter-overlay.letter-overlay--open .letter-bithu {
+    transform: rotateX(-0.9deg) rotateY(-0.3deg) rotateY(180deg) scale(1.1);
+}
+
+.letter-mat {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.letter-mat-truoc {
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.letter-mat-sau {
+    transform: rotateY(180deg);
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+
+/* Mặt trước: phong bì đóng - viền sọc, "Gửi em", góc trang trí */
+.letter-mat-truoc .letter-envelope-closed-stripes,
+.letter-mat-truoc .letter-envelope-closed-inner {
+    border-radius: 8px;
+}
+
+.letter-mat-truoc #letter-envelope-closed {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(194, 24, 91, 0.25);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.letter-mat-truoc #letter-envelope-closed:hover {
+    box-shadow: 0 16px 40px rgba(194, 24, 91, 0.3);
+}
+
+.letter-envelope-closed-stripes {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    padding: 4px;
+    background: repeating-linear-gradient(
+        -45deg,
+        #ffb3d9,
+        #ffb3d9 8px,
+        #d4b8e8 8px,
+        #d4b8e8 16px
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.letter-envelope-closed-inner {
+    position: relative;
+    min-height: 140px;
+    padding: 1.5rem 1.25rem;
+    border: 2px dashed #e91e8c;
+    border-radius: 4px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.letter-envelope-corner {
+    position: absolute;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.letter-envelope-corner--tl { top: 6px;  left: 8px; }
+.letter-envelope-corner--tr { top: 6px;  right: 8px; }
+.letter-envelope-corner--bl { bottom: 6px; left: 8px; }
+.letter-envelope-corner--br { bottom: 6px; right: 8px; }
+
+.letter-envelope-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-style: italic;
+    color: #c2185b;
+    margin: 0 0 0.75rem;
+    letter-spacing: 0.02em;
+}
+
+.letter-envelope-lines {
+    width: 80px;
+    height: 0;
+    border: none;
+    border-top: 2px dashed #e91e8c;
+    margin: 0.25rem 0;
+}
+
+.letter-envelope-lines::before,
+.letter-envelope-lines::after {
+    content: "";
+    display: block;
+    width: 80px;
+    border-top: 2px dashed #e91e8c;
+    margin-top: 6px;
+}
+
+.letter-envelope-title-wrap {
+    font-size: inherit;
+    margin: 0;
+    font-weight: inherit;
+}
+
+.letter-tap-hint {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    color: rgba(194, 24, 91, 0.75);
+    margin-top: 1rem;
+}
+
+/* Mặt sau: chỉ hiện tờ giấy (lathu), đã ẩn phong bì hồng ở dưới theo yêu cầu */
+.letter-mothu,
+.letter-nepgap,
+.letter-nepgapphai,
+.letter-nepgapduoi {
+    display: none !important;
+}
+
+.letter-lathu {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    width: 268px;
+    height: 320px;
+    transition: top 0.5s ease 1s, height 0.5s ease 1s;
+    z-index: 2;
+}
+
+.letter-overlay.letter-overlay--open .letter-lathu {
+    top: -280px;
+    height: 420px;
+}
+
+.letter-lathu-inner {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    padding: 1.15rem 1.15rem 1.35rem;
+    background: #fffefc;
+    border: 1px solid #f0e6e0;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    text-align: left;
+}
+
+.letter-paper-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-family: 'Dancing Script', 'Caveat', cursive;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.2);
+    margin: 0;
+}
+
+.letter-deco {
+    position: absolute;
+    pointer-events: none;
+}
+
+.letter-deco-plane {
+    top: 6px;
+    right: 12px;
+    font-size: 1.1rem;
+}
+
+.letter-deco-heart {
+    top: -2px;
+    right: 22px;
+    font-size: 0.9rem;
+}
+
+.letter-deco-cloud {
+    width: 24px;
+    height: 12px;
+    background: rgba(200, 180, 220, 0.35);
+    border-radius: 50%;
+    top: 28px;
+    right: 10px;
+    filter: blur(1px);
+}
+
+.letter-text-star {
+    font-size: 0.7rem;
+    margin-left: 2px;
+    vertical-align: middle;
+}
+
+.letter-paper-signature {
+    font-family: 'Dancing Script', 'Caveat', cursive;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.3);
+    text-align: center;
+    margin: 0.85rem 0 0;
+}
+
+.letter-paper-body {
+    margin-top: 0.5rem;
+}
+
+.letter-paper-text {
+    font-family: 'Caveat', 'Dancing Script', cursive;
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: #2c2c2c;
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+.letter-close {
+    padding: 12px 28px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #e91e8c 0%, #c2185b 100%);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(194, 24, 91, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+}
+
+.letter-close:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(194, 24, 91, 0.5);
+}

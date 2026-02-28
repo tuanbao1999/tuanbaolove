@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta author="Luc Thien Phong">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuấn Bảo LOVE</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style/style.css">
+</head>
+
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading...</p>
+    </div>
+
+
+    <div id="video-container">
+        <video id="input_video"></video>
+        <canvas id="output_canvas"></canvas>
+    </div>
+
+    <!-- Nút mở thư: bấm là mở được ngay, không cần gesture -->
+    <button type="button" id="btn-open-letter" class="btn-open-letter" aria-label="Mở thư">
+        <span class="btn-open-letter-icon">✉</span>
+        <span class="btn-open-letter-text">Mở thư</span>
+    </button>
+
+    <!-- Overlay thư đúng mẫu: đóng (Gửi em) → mở (tờ giấy + Đóng thư) -->
+    <div id="letter-overlay" class="letter-overlay" aria-hidden="true">
+        <div class="letter-backdrop"></div>
+        <!-- Trang trí lơ lửng: tim, sao, mây -->
+        <span class="letter-float letter-float--1">💖</span>
+        <span class="letter-float letter-float--2">⭐</span>
+        <span class="letter-float letter-float--3">☁️</span>
+        <span class="letter-float letter-float--4">💕</span>
+        <span class="letter-float letter-float--5">🌟</span>
+        <span class="letter-float letter-float--6">💝</span>
+        <span class="letter-float letter-float--7">⭐</span>
+        <span class="letter-float letter-float--8">💖</span>
+        <span class="letter-float letter-float--9">☁️</span>
+        <span class="letter-float letter-float--10">💕</span>
+        <span class="letter-float letter-float--11">🌟</span>
+        <span class="letter-float letter-float--12">☁️</span>
+        <!-- Hiệu ứng mở thư 3D như mẫu: bối cảnh → lật thẻ → nắp mở → tờ giấy trượt lên -->
+        <div class="letter-state letter-state-closed">
+            <div class="letter-boicanh" id="letter-boicanh">
+                <div class="letter-perspective" id="letter-perspective">
+                    <div class="letter-bithu" id="letter-bithu">
+                        <!-- Mặt trước: phong bì đóng "Gửi em" -->
+                        <div class="letter-mat letter-mat-truoc" id="letter-envelope-closed" tabindex="0" role="button">
+                            <div class="letter-envelope-closed-stripes"></div>
+                            <div class="letter-envelope-closed-inner">
+                                <span class="letter-envelope-corner letter-envelope-corner--tl">⭐</span>
+                                <span class="letter-envelope-corner letter-envelope-corner--tr">☁️</span>
+                                <span class="letter-envelope-corner letter-envelope-corner--bl">⭐</span>
+                                <span class="letter-envelope-corner letter-envelope-corner--br">☁️</span>
+                                <h1 class="letter-envelope-title-wrap"><span class="letter-envelope-title">Gửi em</span><span><br>---</span></h1>
+                            </div>
+                        </div>
+                        <!-- Mặt sau: phong bì mở + nắp gập + tờ giấy -->
+                        <div class="letter-mat letter-mat-sau">
+                            <div class="letter-mothu" id="letter-mothu"></div>
+                            <div class="letter-nepgap"></div>
+                            <div class="letter-nepgapphai"></div>
+                            <div class="letter-nepgapduoi">
+                                <span class="letter-envelope-cloud letter-envelope-cloud--1"></span>
+                                <span class="letter-envelope-cloud letter-envelope-cloud--2"></span>
+                            </div>
+                            <div class="letter-lathu" id="letter-lathu">
+                                <div class="letter-lathu-inner">
+                                    <span class="letter-deco letter-deco-plane">✈️</span>
+                                    <span class="letter-deco letter-deco-heart">💗</span>
+                                    <span class="letter-deco letter-deco-cloud"></span>
+                                    <p class="letter-paper-label">Tuấn Bảo</p>
+                                    <div class="letter-paper-body">
+                                        <p class="letter-paper-text">Anh chẳng phải kiểu người lãng mạn, nhưng từ khi gặp em, mọi câu nói đều muốn bắt đầu bằng "Anh thích em". Anh không muốn làm crush<span class="letter-text-star">⭐</span> trong im lặng nữa. Anh muốn làm người yêu hợp pháp, người bên em khi vui lẫn buồn. Em nghĩ sao nếu mình chính thức từ hôm nay?</p>
+                                    </div>
+                                    <p class="letter-paper-signature">Tuấn Bảo</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="letter-tap-hint">Chạm vào phong bì để mở thư</p>
+        </div>
+        <!-- Nút Đóng thư (hiện sau khi mở xong) -->
+        <div id="letter-state-open" class="letter-state letter-state-open">
+            <button type="button" class="letter-close" id="letter-close" aria-label="Đóng thư">Đóng thư</button>
+        </div>
+    </div>
+
+    <script type="module" src="style/script.js"></script>
+</body>
+
+</html>
